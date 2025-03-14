@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Fundo -->
+  <rect width="800" height="600" fill="#f8f9fa"/>
+  
+  <!-- Título -->
+  <text x="400" y="40" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold" fill="#333">Arquitetura do Analisa.ai</text>
+  
+  <!-- Camada de Interface (Frontend) -->
+  <rect x="100" y="80" width="600" height="100" rx="10" fill="#6c8ebf" opacity="0.8"/>
+  <text x="400" y="120" font-family="Arial" font-size="20" text-anchor="middle" fill="white" font-weight="bold">Interface do Usuário (Frontend)</text>
+  <text x="400" y="150" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Dashboard, Assistente IA, Visualizações, Upload de Dados, Formulários</text>
+  
+  <!-- Camada de Middleware -->
+  <rect x="100" y="200" width="600" height="100" rx="10" fill="#d5e8d4" opacity="0.9"/>
+  <text x="400" y="240" font-family="Arial" font-size="20" text-anchor="middle" fill="#333" font-weight="bold">Middleware</text>
+  <text x="400" y="270" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">API REST, Autenticação, Gerenciamento de Sessões</text>
+  
+  <!-- Camada de Serviços -->
+  <rect x="100" y="320" width="600" height="180" rx="10" fill="#fff2cc" opacity="0.9"/>
+  <text x="400" y="350" font-family="Arial" font-size="20" text-anchor="middle" fill="#333" font-weight="bold">Serviços de Análise (Backend)</text>
+  
+  <!-- Componentes CAFE -->
+  <rect x="120" y="370" width="170" height="40" rx="5" fill="#d79b00" opacity="0.8"/>
+  <text x="205" y="395" font-family="Arial" font-size="14" text-anchor="middle" fill="white">PreProcessor</text>
+  
+  <rect x="310" y="370" width="170" height="40" rx="5" fill="#d79b00" opacity="0.8"/>
+  <text x="395" y="395" font-family="Arial" font-size="14" text-anchor="middle" fill="white">FeatureEngineer</text>
+  
+  <rect x="500" y="370" width="170" height="40" rx="5" fill="#d79b00" opacity="0.8"/>
+  <text x="585" y="395" font-family="Arial" font-size="14" text-anchor="middle" fill="white">Explorer</text>
+  
+  <rect x="120" y="430" width="170" height="40" rx="5" fill="#d79b00" opacity="0.8"/>
+  <text x="205" y="455" font-family="Arial" font-size="14" text-anchor="middle" fill="white">DataPipeline</text>
+  
+  <rect x="310" y="430" width="170" height="40" rx="5" fill="#d79b00" opacity="0.8"/>
+  <text x="395" y="455" font-family="Arial" font-size="14" text-anchor="middle" fill="white">PerformanceValidator</text>
+  
+  <rect x="500" y="430" width="170" height="40" rx="5" fill="#d79b00" opacity="0.8"/>
+  <text x="585" y="455" font-family="Arial" font-size="14" text-anchor="middle" fill="white">CAFEAssistant</text>
+  
+  <!-- Camada de Dados -->
+  <rect x="100" y="520" width="600" height="60" rx="10" fill="#e1d5e7" opacity="0.9"/>
+  <text x="400" y="555" font-family="Arial" font-size="20" text-anchor="middle" fill="#333" font-weight="bold">Armazenamento de Dados</text>
+  
+  <!-- Conectores -->
+  <line x1="400" y1="180" x2="400" y2="200" stroke="#333" stroke-width="2"/>
+  <line x1="400" y1="300" x2="400" y2="320" stroke="#333" stroke-width="2"/>
+  <line x1="400" y1="500" x2="400" y2="520" stroke="#333" stroke-width="2"/>
+</svg>
