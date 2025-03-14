@@ -2,7 +2,8 @@
 fastapi>=0.95.0
 uvicorn>=0.22.0
 python-multipart>=0.0.6
-pydantic>=1.10.7
+pydantic>=2.0.0
+pydantic-settings>=2.0.0  # Para BaseSettings
 email-validator>=2.0.0
 
 # Manipulação assíncrona de arquivos
