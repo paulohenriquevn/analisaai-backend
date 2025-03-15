@@ -1,5 +1,5 @@
 import logging
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, MetaData, Table, select, exists
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, MetaData, Table, Float, ForeignKey, select, exists
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -32,6 +32,21 @@ datasets = Table(
     Column("updated_at", DateTime, default=datetime.now, onupdate=datetime.now),
     Column("status", String, nullable=False),  # 'processed', 'training', 'trained', 'error'
     Column("description", String),
+)
+
+dataset_columns = Table(
+    "dataset_columns",
+    metadata,
+    Column("id", String, primary_key=True),
+    Column("dataset_id", String, ForeignKey("datasets.id", ondelete="CASCADE"), nullable=False),
+    Column("name", String, nullable=False),
+    Column("data_type", String, nullable=False),
+    Column("missing_count", Integer),
+    Column("missing_percentage", Float),
+    Column("is_target", Boolean, default=False),
+    Column("description", String),
+    Column("created_at", DateTime, default=datetime.now),
+    Column("updated_at", DateTime, default=datetime.now, onupdate=datetime.now),
 )
 
 async def init_db():
@@ -67,4 +82,23 @@ async def save_dataset(dataset_data: dict) -> dict:
         except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Erro ao salvar dataset: {str(e)}")
+            raise
+
+async def save_dataset_columns(columns_data: list) -> bool:
+    import uuid
+    async with async_session() as session:
+        try:
+            for column_data in columns_data:
+                column_data["id"] = str(uuid.uuid4())
+                column_data["created_at"] = datetime.now()
+                column_data["updated_at"] = datetime.now()
+                query = dataset_columns.insert().values(**column_data)
+                await session.execute(query)
+            
+            await session.commit()
+            logger.info(f"Colunas do dataset {columns_data[0]['dataset_id']} salvas com sucesso")
+            return True
+        except SQLAlchemyError as e:
+            await session.rollback()
+            logger.error(f"Erro ao salvar colunas do dataset: {str(e)}")
             raise

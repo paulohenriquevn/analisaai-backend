@@ -33,6 +33,7 @@ class FileMetadata(BaseModel):
     error_message: Optional[str] = None
     confirmed: bool = False  # Flag para indicar se o upload foi confirmado
     dataset_name: Optional[str] = None  # Nome único para o dataset
+    columns: Optional[List[ColumnInfo]] = None  # Informações sobre as colunas
 
 class FilePreview(BaseModel):
     """Prévia do conteúdo de um arquivo"""

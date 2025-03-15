@@ -1,19 +1,15 @@
 import os
 import logging
+import aiofiles
 import pandas as pd
-import json
-import uuid
-from typing import Dict, List, Any, Optional, Tuple
+import numpy as np
+from typing import List, Optional
 from fastapi import UploadFile
 from datetime import datetime
-import chardet
-import aiofiles
-import asyncio
-import numpy as np
 
 from config import settings
-from models.file_metadata import FileMetadata, FilePreview, DataAnalysisResult, ColumnInfo, DataIssue
-from database.db import is_dataset_name_unique, save_dataset
+from models.file_metadata import FileMetadata, FilePreview, ColumnInfo
+from database.db import is_dataset_name_unique, save_dataset, save_dataset_columns
 
 logger = logging.getLogger("file-service")
 
@@ -118,6 +114,20 @@ class FileService:
             row_count = len(df)
             column_count = len(df.columns)
             
+            # Gerar informações sobre as colunas
+            columns = []
+            for col in df.columns:
+                dtype = str(df[col].dtype)
+                missing_count = df[col].isna().sum()
+                missing_percentage = (missing_count / len(df)) * 100
+                
+                columns.append(ColumnInfo(
+                    name=col,
+                    data_type=dtype,
+                    missing_count=missing_count,
+                    missing_percentage=missing_percentage
+                ))
+            
             metadata = FileMetadata(
                 id=file_id,
                 filename=file_name,
@@ -129,7 +139,8 @@ class FileService:
                 column_count=column_count,
                 encoding=encoding,
                 delimiter=delimiter if file_extension == "csv" else None,
-                confirmed=False
+                confirmed=False,
+                columns=columns
             )
             
             metadata_path = os.path.join(metadata_dir, "metadata.json")
@@ -190,10 +201,8 @@ class FileService:
         )
     
     async def confirm_upload(self, file_id: str, dataset_name: str, description: Optional[str] = None) -> Optional[FileMetadata]:
-
         metadata_path = os.path.join(settings.UPLOAD_FOLDER, file_id, "metadata.json")
         
-        print("metadata_path", metadata_path)
         if not os.path.exists(metadata_path):
             logger.error(f"Arquivo {file_id} não encontrado para confirmação")
             return None
@@ -217,6 +226,7 @@ class FileService:
             metadata.confirmed = True
             metadata.dataset_name = dataset_name
             
+            # Preparar dados do dataset para salvar no banco
             dataset_data = {
                 "id": file_id,
                 "name": dataset_name,
@@ -231,7 +241,21 @@ class FileService:
                 "description": description
             }
             
+            # Salvar o dataset no banco de dados
             await save_dataset(dataset_data)
+            
+            # Preparar dados das colunas para salvar no banco
+            columns_data = []
+            if metadata.columns:
+                for column in metadata.columns:
+                    columns_data.append({
+                        "dataset_id": file_id,
+                        "name": column.name,
+                        "data_type": column.data_type,
+                    })
+                
+                # Salvar informações das colunas no banco de dados
+                await save_dataset_columns(columns_data)
             
             # Atualizar o arquivo de metadados
             with open(metadata_path, 'w', encoding='utf-8') as f:
