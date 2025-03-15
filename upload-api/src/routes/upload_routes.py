@@ -2,6 +2,7 @@ import uuid
 import logging
 
 from datetime import datetime
+from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
 from typing import Optional, List
 from services.file_service import FileService
@@ -12,6 +13,10 @@ from config import settings
 logger = logging.getLogger("upload-routes")
 
 router = APIRouter(tags=["Upload"])
+
+class DatasetConfirmation(BaseModel):
+    dataset_name: str
+    description: Optional[str] = None
 
 def get_file_service():
     return FileService()
@@ -129,12 +134,11 @@ async def delete_file(
 @router.post("/files/{file_id}/confirm", response_model=FileMetadata)
 async def confirm_file_upload(
     file_id: str,
-    dataset_name: str = Form(...),
-    description: str = Form(None),
+    confirmation: DatasetConfirmation,
     file_service: FileService = Depends(get_file_service)
 ):
     try:
-        metadata = await file_service.confirm_upload(file_id, dataset_name, description)
+        metadata = await file_service.confirm_upload(file_id, confirmation.dataset_name, confirmation.description)
         if not metadata:
             raise HTTPException(status_code=404, detail="Arquivo não encontrado")
         return metadata

@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     RABBITMQ_PASS: str = Field(default="guest", env="RABBITMQ_PASS")
     
     # Configurações do banco de dados
-    DATABASE_URL: str = Field(default="postgresql://analisaai:analisaaiawsedr@postgres:5432/analisaai", env="DATABASE_URL")
+    DATABASE_URL: str = Field(default="postgresql://analisaai:analisaaiawsedr@localhost:5432/analisaai", env="DATABASE_URL")
     
     # Tipos de arquivos suportados
     SUPPORTED_FILE_TYPES: List[str] = Field(default=["csv", "xlsx", "xls", "json"])

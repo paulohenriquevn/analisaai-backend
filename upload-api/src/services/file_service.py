@@ -13,6 +13,7 @@ import numpy as np
 
 from config import settings
 from models.file_metadata import FileMetadata, FilePreview, DataAnalysisResult, ColumnInfo, DataIssue
+from database.db import is_dataset_name_unique, save_dataset
 
 logger = logging.getLogger("file-service")
 
@@ -30,20 +31,6 @@ class FileService:
                 return FilePreview.parse_raw(preview_json)
         except Exception as e:
             logger.error(f"Erro ao ler prévia do arquivo {file_id}: {str(e)}")
-            return None
-    
-    async def get_file_analysis(self, file_id: str) -> Optional[DataAnalysisResult]:
-
-        analysis_path = os.path.join(settings.UPLOAD_FOLDER, file_id, "analysis.json")
-        if not os.path.exists(analysis_path):
-            return None
-            
-        try:
-            with open(analysis_path, 'r', encoding='utf-8') as f:
-                analysis_json = f.read()
-                return DataAnalysisResult.parse_raw(analysis_json)
-        except Exception as e:
-            logger.error(f"Erro ao ler análise do arquivo {file_id}: {str(e)}")
             return None
     
     async def list_files(self, limit: int = 10, offset: int = 0) -> List[FileMetadata]:
@@ -154,11 +141,6 @@ class FileService:
             with open(preview_path, 'w', encoding='utf-8') as f:
                 f.write(preview.json())
                 
-            analysis = self._analyze_data(df)
-            analysis_path = os.path.join(metadata_dir, "analysis.json")
-            with open(analysis_path, 'w', encoding='utf-8') as f:
-                f.write(analysis.json())
-                
             logger.info(f"Arquivo {file_id} processado com sucesso.")
             
         except Exception as e:
@@ -207,49 +189,61 @@ class FileService:
             total_rows=len(df)
         )
     
-    async def confirm_upload(self, file_id: str) -> Optional[FileMetadata]:
-        """
-        Confirma o upload de um arquivo e inicia seu processamento
+    async def confirm_upload(self, file_id: str, dataset_name: str, description: Optional[str] = None) -> Optional[FileMetadata]:
+
+        metadata_path = os.path.join(settings.UPLOAD_FOLDER, file_id, "metadata.json")
         
-        Args:
-            file_id: ID único do arquivo
-            
-        Returns:
-            Objeto FileMetadata atualizado ou None se o arquivo não for encontrado
-        """
-        metadata_dir = os.path.join(settings.UPLOAD_FOLDER, file_id)
-        metadata_path = os.path.join(metadata_dir, "metadata.json")
-        
+        print("metadata_path", metadata_path)
         if not os.path.exists(metadata_path):
             logger.error(f"Arquivo {file_id} não encontrado para confirmação")
             return None
             
         try:
-            # Carregar metadados atuais
+            if not await is_dataset_name_unique(dataset_name):
+                raise ValueError(f"O nome de dataset '{dataset_name}' já está em uso. Por favor, escolha outro nome.")
+            
             with open(metadata_path, 'r', encoding='utf-8') as f:
                 metadata_json = f.read()
                 metadata = FileMetadata.parse_raw(metadata_json)
             
-            # Verificar se o arquivo já foi confirmado
             if metadata.confirmed:
                 logger.info(f"Arquivo {file_id} já foi confirmado anteriormente")
                 return metadata
                 
-            # Verificar se o arquivo não está em estado de erro
             if metadata.status == "error":
                 logger.error(f"Não é possível confirmar arquivo {file_id} com status de erro")
                 return None
                 
-            # Atualizar status e flag de confirmação
             metadata.confirmed = True
-            # Se já estiver em processamento ou processado, apenas atualiza o flag de confirmação
+            metadata.dataset_name = dataset_name
+            
+            dataset_data = {
+                "id": file_id,
+                "name": dataset_name,
+                "filename": metadata.filename,
+                "file_type": metadata.file_type,
+                "file_size": metadata.file_size,
+                "row_count": metadata.row_count,
+                "column_count": metadata.column_count,
+                "created_at": metadata.upload_date,
+                "updated_at": datetime.now(),
+                "status": metadata.status,
+                "description": description
+            }
+            
+            await save_dataset(dataset_data)
+            
+            # Atualizar o arquivo de metadados
             with open(metadata_path, 'w', encoding='utf-8') as f:
                 f.write(metadata.json())
                 
-            logger.info(f"Arquivo {file_id} confirmado com sucesso")
+            logger.info(f"Arquivo {file_id} confirmado com sucesso como dataset '{dataset_name}'")
             
             return metadata
             
+        except ValueError as e:
+            logger.error(f"Erro de validação: {str(e)}")
+            raise
         except Exception as e:
             logger.error(f"Erro ao confirmar arquivo {file_id}: {str(e)}")
-            return None
+            raise
