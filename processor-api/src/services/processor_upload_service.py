@@ -49,10 +49,11 @@ class ProcessorUploadService:
         initial_result = ProcessingResult(
             id=processing_id,
             dataset_id=config.dataset_id,
+            target_column=config.target_column, 
             status="processing",
             created_at=datetime.now(),
             updated_at=datetime.now(),
-            transformation_statistics={}  # Inicializar com um objeto vazio
+            transformation_statistics={}
         )
         
         await save_processing_results(initial_result.dict())
@@ -196,6 +197,7 @@ class ProcessorUploadService:
                         processing_id,
                         {
                             "status": "completed",
+                            "target_column": config.target_column,
                             "best_choice": best_choice,
                             "preprocessing_config": processing_results.get("preprocessing_config"),
                             "feature_engineering_config": processing_results.get("feature_engineering_config"),

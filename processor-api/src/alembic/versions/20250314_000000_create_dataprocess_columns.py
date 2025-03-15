@@ -21,6 +21,7 @@ def upgrade() -> None:
         'data_processed',
         sa.Column('id', sa.String(), nullable=False),
         sa.Column('dataset_id', sa.String(), nullable=False),
+        sa.Column('target_column', sa.String(), nullable=True),
         sa.Column('preprocessing_config', JSON, nullable=True),
         sa.Column('feature_engineering_config', JSON, nullable=True),
         sa.Column('validation_results', JSON, nullable=True),

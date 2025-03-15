@@ -24,6 +24,7 @@ data_processed = Table(
     metadata,
     Column("id", String, primary_key=True),
     Column("dataset_id", String, nullable=False),
+    Column("target_column", String, nullable=True),
     Column("preprocessing_config", JSON, nullable=True),
     Column("feature_engineering_config", JSON, nullable=True),
     Column("validation_results", JSON, nullable=True),

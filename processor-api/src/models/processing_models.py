@@ -80,6 +80,7 @@ class ProcessingResult(BaseModel):
     """Resultado completo do processamento de dados"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     dataset_id: str
+    target_column: Optional[str] = None  # Coluna target utilizada na análise
     status: str  # 'processing', 'completed', 'error'
     error_message: Optional[str] = None
     missing_values_report: Optional[List[Dict[str, Any]]] = []
@@ -89,7 +90,7 @@ class ProcessingResult(BaseModel):
     preprocessing_config: Optional[Dict[str, Any]] = {}
     feature_engineering_config: Optional[Dict[str, Any]] = {}
     validation_results: Optional[Dict[str, Any]] = {}
-    transformation_statistics: Optional[Dict[str, Any]] = {}  # Novo campo para estatísticas do Explorer
+    transformation_statistics: Optional[Dict[str, Any]] = {}  # Campo para estatísticas do Explorer
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     
@@ -112,12 +113,13 @@ class ProcessingResponse(BaseModel):
     """Resposta simplificada do processamento"""
     id: str
     dataset_id: str
+    target_column: Optional[str] = None  # Incluir a coluna target na resposta
     status: str
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     summary: Optional[str] = None
     validation_metrics: Optional[ValidationMetrics] = None
-    auto_explore_used: Optional[bool] = False  # Novo campo indicando se o Explorer foi usado
+    auto_explore_used: Optional[bool] = False  # Indica se o Explorer foi usado
     
     class Config:
         validate_assignment = True

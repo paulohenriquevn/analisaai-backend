@@ -45,6 +45,8 @@ async def process_dataset(
         if auto_explore:
             logger.info(f"Modo de exploração automática ativado para o dataset {config.dataset_id}")
             
+        target_column = config.target_column
+        
         processing_id = await processor_upload_service.process_dataset(config)
         
         response = {
@@ -56,6 +58,9 @@ async def process_dataset(
                       (" Exploração automática de features ativada." if auto_explore else "") + 
                       " Use o endpoint /process/{processing_id} para verificar o status."
         }
+        
+        if target_column:
+            response["target_column"] = target_column
         
         # Converter para o modelo
         return ProcessingResponse(**response)
@@ -76,20 +81,25 @@ async def get_processing_result(
             raise HTTPException(status_code=404, detail="Processamento não encontrado")
         
         # Verificar se o Explorer foi usado
-        auto_explore_used = bool(result.transformation_statistics)
+        auto_explore_used = bool(result.get("transformation_statistics"))
         
         # Formatar métricas de validação
-        validation_metrics = processor_service.format_validation_metrics(result.validation_results)
+        validation_metrics = processor_service.format_validation_metrics(result.get("validation_results"))
         
         # Gerar resumo baseado no status
         summary = ""
-        if result.status == "completed":
-            transformed_features = len(result.transformations_applied) if result.transformations_applied else 0
-            missing_values = len(result.missing_values_report) if result.missing_values_report else 0
-            outliers = len(result.outliers_report) if result.outliers_report else 0
+        if result.get("status") == "completed":
+            transformed_features = len(result.get("transformations_applied", [])) if result.get("transformations_applied") else 0
+            missing_values = len(result.get("missing_values_report", [])) if result.get("missing_values_report") else 0
+            outliers = len(result.get("outliers_report", [])) if result.get("outliers_report") else 0
+            
+            # Incluir informação da coluna target no resumo
+            target_info = ""
+            if result.get("target_column"):
+                target_info = f" Coluna target: {result.get('target_column')}."
             
             summary = (
-                f"Processamento concluído com sucesso. "
+                f"Processamento concluído com sucesso.{target_info} "
                 f"{transformed_features} transformações aplicadas, "
                 f"{missing_values} colunas com valores ausentes tratados, "
                 f"{outliers} colunas com outliers tratados."
@@ -97,7 +107,7 @@ async def get_processing_result(
             
             if auto_explore_used:
                 # Adicionar estatísticas da exploração automática
-                stats = result.transformation_statistics or {}
+                stats = result.get("transformation_statistics") or {}
                 transformations_tested = stats.get('total_transformations_tested', 0)
                 best_transformation = stats.get('best_transformation', 'N/A')
                 
@@ -116,26 +126,30 @@ async def get_processing_result(
                     f"Diferença de performance: {diff_pct:.2f}%. "
                     f"Redução de features: {feature_red_pct:.1f}%."
                 )
-        elif result.status == "error":
-            summary = f"Erro durante o processamento: {result.error_message}"
+        elif result.get("status") == "error":
+            summary = f"Erro durante o processamento: {result.get('error_message')}"
         else:
             summary = "Processamento em andamento..."
         
         # Preparar resposta
         response_data = {
-            "id": result.id,
-            "dataset_id": result.dataset_id,
-            "status": result.status,
+            "id": result.get("id"),
+            "dataset_id": result.get("dataset_id"),
+            "status": result.get("status"),
             "summary": summary,
             "auto_explore_used": auto_explore_used
         }
         
-        # Adicionar campos de data/hora se existirem
-        if hasattr(result, 'created_at') and result.created_at:
-            response_data["created_at"] = result.created_at
+        # Adicionar a coluna target se disponível
+        if result.get("target_column"):
+            response_data["target_column"] = result.get("target_column")
         
-        if hasattr(result, 'updated_at') and result.updated_at:
-            response_data["updated_at"] = result.updated_at
+        # Adicionar campos de data/hora se existirem
+        if result.get('created_at'):
+            response_data["created_at"] = result.get('created_at')
+        
+        if result.get('updated_at'):
+            response_data["updated_at"] = result.get('updated_at')
         
         # Adicionar métricas de validação se existirem
         if validation_metrics:
@@ -180,6 +194,11 @@ async def process_dataset_auto(
         else:
             config.feature_selection.method = "auto"
             config.feature_selection.auto_explore = True
+        
+        # Incluir target se informado
+        target_info = ""
+        if config.target_column:
+            target_info = f" Coluna target: {config.target_column}."
             
         processing_id = await processor_upload_service.process_dataset(config)
         
@@ -188,8 +207,12 @@ async def process_dataset_auto(
             "dataset_id": config.dataset_id,
             "status": "processing",
             "auto_explore_used": True,
-            "summary": "Processamento com exploração automática iniciado. Use o endpoint /process/{processing_id} para verificar o status."
+            "summary": f"Processamento com exploração automática iniciado.{target_info} Use o endpoint /process/{processing_id} para verificar o status."
         }
+        
+        # Adicionar coluna target se disponível
+        if config.target_column:
+            response["target_column"] = config.target_column
         
         # Converter para o modelo
         return ProcessingResponse(**response)
