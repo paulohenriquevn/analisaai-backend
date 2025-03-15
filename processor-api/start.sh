@@ -10,5 +10,5 @@ echo "Executando migrações do banco de dados..."
 alembic upgrade head
 
 # Iniciar a aplicação
-echo "Iniciando a API de Upload..."
-exec uvicorn main:app --host 0.0.0.0 --port 8001
+echo "Iniciando a API de Processamento..."
+exec uvicorn main:app --host 0.0.0.0 --port 8002
