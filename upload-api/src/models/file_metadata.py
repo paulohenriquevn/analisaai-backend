@@ -25,12 +25,13 @@ class FileMetadata(BaseModel):
     file_size: int
     upload_date: datetime = Field(default_factory=datetime.now)
     file_type: str  # 'csv', 'xlsx', 'xls', 'json'
-    status: str  # 'processing', 'processed', 'error'
+    status: str  # 'pending', 'processing', 'processed', 'error'
     row_count: Optional[int] = None
     column_count: Optional[int] = None
     encoding: Optional[str] = None
     delimiter: Optional[str] = None
     error_message: Optional[str] = None
+    confirmed: bool = False  # Flag para indicar se o upload foi confirmado
 
 class FilePreview(BaseModel):
     """Prévia do conteúdo de um arquivo"""

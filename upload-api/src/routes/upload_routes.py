@@ -198,3 +198,29 @@ async def delete_file(
     except Exception as e:
         logger.error(f"Erro ao remover arquivo {file_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao remover arquivo: {str(e)}")
+    
+
+@router.post("/files/{file_id}/confirm", response_model=FileMetadata)
+async def confirm_file_upload(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Confirma o upload de um arquivo e inicia seu processamento
+    
+    Args:
+        file_id: ID único do arquivo
+        
+    Returns:
+        Metadados atualizados do arquivo
+    """
+    try:
+        metadata = await file_service.confirm_upload(file_id)
+        if not metadata:
+            raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+        return metadata
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao confirmar upload do arquivo {file_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao confirmar upload: {str(e)}")

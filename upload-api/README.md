@@ -64,6 +64,28 @@ Recebe um arquivo para processamento.
 }
 ```
 
+### POST `/api/v1/files/{file_id}/confirm`
+
+Confirma o upload de um arquivo e inicia seu processamento.
+
+**Parâmetros:**
+- `file_id`: ID único do arquivo
+
+**Resposta:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "filename": "dados_vendas.csv",
+  "file_size": 2048576,
+  "upload_date": "2025-03-13T14:30:00",
+  "file_type": "csv",
+  "status": "processing",
+  "encoding": "utf-8",
+  "delimiter": ",",
+  "confirmed": true
+}
+```
+
 ### GET `/api/v1/files/{file_id}/preview`
 
 Obtém uma prévia do arquivo carregado.

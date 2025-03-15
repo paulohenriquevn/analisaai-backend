@@ -210,7 +210,8 @@ class FileService:
                 row_count=row_count,
                 column_count=column_count,
                 encoding=encoding,
-                delimiter=delimiter if file_extension == "csv" else None
+                delimiter=delimiter if file_extension == "csv" else None,
+                confirmed=False
             )
             
             # Salvar metadados em formato JSON
@@ -246,7 +247,8 @@ class FileService:
                 upload_date=datetime.now(),
                 file_type=file_extension,
                 status="error",
-                error_message=str(e)
+                error_message=str(e),
+                confirmed=False
             )
             
             # Salvar metadados com erro
@@ -392,3 +394,51 @@ class FileService:
             row_count=len(df),
             column_count=len(df.columns)
         )
+        
+        
+    async def confirm_upload(self, file_id: str) -> Optional[FileMetadata]:
+        """
+        Confirma o upload de um arquivo e inicia seu processamento
+        
+        Args:
+            file_id: ID único do arquivo
+            
+        Returns:
+            Objeto FileMetadata atualizado ou None se o arquivo não for encontrado
+        """
+        metadata_dir = os.path.join(settings.UPLOAD_FOLDER, file_id)
+        metadata_path = os.path.join(metadata_dir, "metadata.json")
+        
+        if not os.path.exists(metadata_path):
+            logger.error(f"Arquivo {file_id} não encontrado para confirmação")
+            return None
+            
+        try:
+            # Carregar metadados atuais
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                metadata_json = f.read()
+                metadata = FileMetadata.parse_raw(metadata_json)
+            
+            # Verificar se o arquivo já foi confirmado
+            if metadata.confirmed:
+                logger.info(f"Arquivo {file_id} já foi confirmado anteriormente")
+                return metadata
+                
+            # Verificar se o arquivo não está em estado de erro
+            if metadata.status == "error":
+                logger.error(f"Não é possível confirmar arquivo {file_id} com status de erro")
+                return None
+                
+            # Atualizar status e flag de confirmação
+            metadata.confirmed = True
+            # Se já estiver em processamento ou processado, apenas atualiza o flag de confirmação
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                f.write(metadata.json())
+                
+            logger.info(f"Arquivo {file_id} confirmado com sucesso")
+            
+            return metadata
+            
+        except Exception as e:
+            logger.error(f"Erro ao confirmar arquivo {file_id}: {str(e)}")
+            return None
