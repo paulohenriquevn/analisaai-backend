@@ -234,90 +234,78 @@ class ProcessorUploadService:
                 "validation_results": pipeline.get_validation_results(),
             }
             
-            # Extrair relatórios adicionais
-            # Relatório de valores ausentes
-            missing_values_report = self._extract_missing_values_report(pipeline)
-            if missing_values_report:
-                results["missing_values_report"] = missing_values_report
-                
-            # Relatório de outliers
-            outliers_report = self._extract_outliers_report(pipeline)
-            if outliers_report:
-                results["outliers_report"] = outliers_report
-                
-            # Importância de features
-            feature_importance = self._extract_feature_importance(pipeline)
-            if feature_importance:
-                results["feature_importance"] = feature_importance
-                
-            # Transformações aplicadas
-            transformations = self._extract_transformations(pipeline)
-            if transformations:
-                results["transformations_applied"] = transformations
-                
             return results
         except Exception as e:
             logger.error(f"Erro durante processamento síncrono: {str(e)}")
             raise
 
-    def _extract_missing_values_report(self, pipeline):
-        """Extrai relatório de valores ausentes do pipeline CAFE"""
+        """Extrai transformações aplicadas pelo pipeline CAFE"""
         try:
+            transformations = []
+            
+            # Transformações do preprocessor
             preprocessor = pipeline.preprocessor
-            if hasattr(preprocessor, 'column_stats'):
-                missing_report = {}
-                for col, stats in preprocessor.column_stats.items():
-                    if 'missing_count' in stats:
-                        missing_report[col] = {
-                            'missing_count': stats['missing_count'],
-                            'missing_percentage': stats.get('missing_percentage', 0),
-                            'strategy_applied': stats.get('imputation_strategy', 'none'),
-                            'filled_with': stats.get('imputation_value', None)
-                        }
-                return missing_report
-            return None
-        except Exception as e:
-            logger.warning(f"Erro ao extrair relatório de valores ausentes: {str(e)}")
-            return None
-
-    def _extract_outliers_report(self, pipeline):
-        """Extrai relatório de outliers do pipeline CAFE"""
-        try:
-            preprocessor = pipeline.preprocessor
-            if hasattr(preprocessor, 'column_stats'):
-                outliers_report = {}
-                for col, stats in preprocessor.column_stats.items():
-                    if 'outliers_count' in stats:
-                        outliers_report[col] = {
-                            'outliers_count': stats['outliers_count'],
-                            'outliers_percentage': stats.get('outliers_percentage', 0),
-                            'method_used': stats.get('outlier_detection_method', 'none'),
-                            'strategy_applied': stats.get('outlier_treatment_strategy', 'none')
-                        }
-                return outliers_report
-            return None
-        except Exception as e:
-            logger.warning(f"Erro ao extrair relatório de outliers: {str(e)}")
-            return None
-
-    def _extract_feature_importance(self, pipeline):
-        """Extrai importância das features do pipeline CAFE"""
-        try:
-            feature_engineer = pipeline.feature_engineer
-            if hasattr(feature_engineer, 'feature_importance'):
-                importance_dict = {}
-                for i, (feature, importance) in enumerate(feature_engineer.feature_importance.items()):
-                    importance_dict[feature] = {
-                        'importance': float(importance),
-                        'rank': i + 1
+            if hasattr(preprocessor, 'transformations_applied'):
+                for transform in preprocessor.transformations_applied:
+                    transformation = {
+                        'column': transform.get('column', ''),
+                        'original_type': transform.get('original_type', ''),
+                        'transformation_type': transform.get('type', ''),
+                        'details': transform.get('details', {})
                     }
-                return importance_dict
-            return None
+                    
+                    # Certifique-se de que os valores são serializáveis
+                    if 'details' in transformation and transformation['details']:
+                        try:
+                            # Converter valores numpy para valores Python nativos
+                            details = {}
+                            for k, v in transformation['details'].items():
+                                if hasattr(v, 'tolist'):  # Numpy array
+                                    details[k] = v.tolist()
+                                elif hasattr(v, 'item'):  # Numpy scalar
+                                    details[k] = v.item()
+                                else:
+                                    details[k] = v
+                            transformation['details'] = details
+                        except Exception as e:
+                            logger.warning(f"Erro ao processar detalhes da transformação: {str(e)}")
+                            transformation['details'] = {}
+                    
+                    transformations.append(transformation)
+            
+            # Transformações do feature engineer
+            feature_engineer = pipeline.feature_engineer
+            if hasattr(feature_engineer, 'transformations_applied'):
+                for transform in feature_engineer.transformations_applied:
+                    transformation = {
+                        'column': transform.get('column', ''),
+                        'original_type': transform.get('original_type', ''),
+                        'transformation_type': transform.get('type', ''),
+                        'details': transform.get('details', {})
+                    }
+                    
+                    # Mesma lógica de processamento para detalhes
+                    if 'details' in transformation and transformation['details']:
+                        try:
+                            details = {}
+                            for k, v in transformation['details'].items():
+                                if hasattr(v, 'tolist'):
+                                    details[k] = v.tolist()
+                                elif hasattr(v, 'item'):
+                                    details[k] = v.item()
+                                else:
+                                    details[k] = v
+                            transformation['details'] = details
+                        except Exception as e:
+                            logger.warning(f"Erro ao processar detalhes da transformação: {str(e)}")
+                            transformation['details'] = {}
+                    
+                    transformations.append(transformation)
+                    
+            return transformations if transformations else None
         except Exception as e:
-            logger.warning(f"Erro ao extrair importância das features: {str(e)}")
-            return None
-
-    def _extract_transformations(self, pipeline):
+            logger.warning(f"Erro ao extrair transformações aplicadas: {str(e)}")
+        return None
         """Extrai transformações aplicadas pelo pipeline CAFE"""
         try:
             transformations = []
