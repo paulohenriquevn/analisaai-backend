@@ -98,7 +98,6 @@ async def get_file_preview(
         logger.error(f"Erro ao obter prévia do arquivo {file_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao gerar prévia: {str(e)}")
 
-
 @router.get("/files", response_model=List[FileMetadata])
 async def list_files(
     limit: int = 10,
@@ -130,15 +129,20 @@ async def delete_file(
 @router.post("/files/{file_id}/confirm", response_model=FileMetadata)
 async def confirm_file_upload(
     file_id: str,
+    dataset_name: str = Form(...),
+    description: str = Form(None),
     file_service: FileService = Depends(get_file_service)
 ):
     try:
-        metadata = await file_service.confirm_upload(file_id)
+        metadata = await file_service.confirm_upload(file_id, dataset_name, description)
         if not metadata:
             raise HTTPException(status_code=404, detail="Arquivo não encontrado")
         return metadata
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.error(f"Erro de validação ao confirmar upload do arquivo {file_id}: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Erro ao confirmar upload do arquivo {file_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao confirmar upload: {str(e)}")

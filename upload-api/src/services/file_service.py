@@ -207,10 +207,6 @@ class FileService:
             total_rows=len(df)
         )
     
-    def _analyze_data(self, df: pd.DataFrame) -> DataAnalysisResult:
-        pass
-        
-        
     async def confirm_upload(self, file_id: str) -> Optional[FileMetadata]:
         """
         Confirma o upload de um arquivo e inicia seu processamento

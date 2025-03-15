@@ -6,6 +6,7 @@ import logging
 
 from config import settings
 from routes import upload_routes
+from database.db import init_db
 
 # Configuração de logging
 logging.basicConfig(
@@ -32,6 +33,13 @@ app.add_middleware(
 
 # Inclusão das rotas
 app.include_router(upload_routes.router, prefix="/api/v1")
+
+# Eventos de inicialização e encerramento
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Inicializando a API de Upload...")
+    await init_db()
+    logger.info("API de Upload inicializada")
 
 # Rota de verificação de saúde do serviço
 @app.get("/health")
