@@ -52,6 +52,7 @@ async def forward_request(url: str, method: str, headers: Dict[str, str] = None,
             detail=f"Erro interno do servidor: {str(e)}"
         )
 
+
 @router.post("/", tags=["Upload"])
 async def upload_file(
     request: Request,
@@ -97,6 +98,7 @@ async def upload_file(
         logger.error(f"Erro ao processar upload: {str(e)}")
         raise
 
+
 @router.get("/files/{file_id}/preview", tags=["Upload"])
 async def get_file_preview(
     request: Request,
@@ -128,7 +130,6 @@ async def get_file_preview(
         raise
     
 
-
 @router.post("/files/{file_id}/confirm", tags=["Upload"])
 async def post_file_confirm(
     request: Request,
@@ -157,48 +158,6 @@ async def post_file_confirm(
         logger.error(f"Erro ao confirma o upload do arquivo: {str(e)}")
         raise
 
-@router.get("/files/{file_id}/analysis", tags=["Upload"])
-async def get_file_analysis(
-    request: Request,
-    file_id: str
-):
-    """
-    Obtém análise detalhada do arquivo carregado
-    
-    Args:
-        file_id: ID único do arquivo
-        
-    Returns:
-        Análise detalhada incluindo estatísticas e problemas identificados
-    """
-    # URL do serviço de upload
-    target_url = f"{settings.UPLOAD_API_URL}/api/v1/files/{file_id}/analysis"
-    
-    # Encaminhar requisição para o serviço de upload
-    try:
-        # Coletar cabeçalhos relevantes
-        headers = {
-            "Accept": request.headers.get("Accept", "application/json"),
-            "Accept-Language": request.headers.get("Accept-Language", "pt-BR"),
-            "User-Agent": request.headers.get("User-Agent", "AnalisaAI-Gateway")
-        }
-        
-        # Se houver token de autenticação, encaminhar
-        if "Authorization" in request.headers:
-            headers["Authorization"] = request.headers["Authorization"]
-        
-        # Encaminhar requisição
-        response = await forward_request(
-            url=target_url,
-            method="GET",
-            headers=headers
-        )
-        
-        # Retornar resposta com o status code original
-        return response["content"]
-    except Exception as e:
-        logger.error(f"Erro ao obter análise do arquivo: {str(e)}")
-        raise
 
 @router.get("/files", tags=["Upload"])
 async def list_files(
@@ -245,6 +204,7 @@ async def list_files(
     except Exception as e:
         logger.error(f"Erro ao listar arquivos: {str(e)}")
         raise
+
 
 @router.delete("/files/{file_id}", tags=["Upload"])
 async def delete_file(

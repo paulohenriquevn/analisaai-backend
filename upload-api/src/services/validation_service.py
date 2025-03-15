@@ -9,32 +9,13 @@ from typing import Optional, List, Dict, Any
 logger = logging.getLogger("validation-service")
 
 class ValidationService:
-    """
-    Serviço responsável por validar e detectar propriedades 
-    de arquivos de dados antes do processamento
-    """
-    
+
     async def detect_encoding(self, file: UploadFile) -> Optional[str]:
-        """
-        Detecta o encoding de um arquivo
-        
-        Args:
-            file: Arquivo a ser analisado
-            
-        Returns:
-            String com o encoding detectado ou None se não for possível detectar
-        """
         try:
-            # Salvar posição atual do cursor do arquivo
-            current_position = file.file.tell()
-            
-            # Ler um trecho do arquivo para detecção
             sample = await file.read(min(1024 * 1024, file.size or 1024 * 1024))  # Ler no máximo 1MB
             
-            # Detectar encoding
             detection = chardet.detect(sample)
             
-            # Restaurar posição do cursor
             await file.seek(0)
             
             if detection and detection['confidence'] > 0.7:
@@ -46,7 +27,6 @@ class ValidationService:
                 
         except Exception as e:
             logger.error(f"Erro ao detectar encoding: {str(e)}")
-            # Tentar restaurar posição do cursor em caso de erro
             try:
                 await file.seek(0)
             except:
@@ -54,35 +34,18 @@ class ValidationService:
             return None
     
     async def detect_delimiter(self, file: UploadFile, encoding: str = 'utf-8') -> Optional[str]:
-        """
-        Detecta o delimitador de um arquivo CSV
-        
-        Args:
-            file: Arquivo CSV a ser analisado
-            encoding: Encoding do arquivo
-            
-        Returns:
-            String com o delimitador detectado ou None se não for possível detectar
-        """
         try:
-            # Salvar posição atual do cursor do arquivo
-            current_position = file.file.tell()
-            
-            # Ler um trecho do arquivo para detecção
             sample_bytes = await file.read(min(1024 * 100, file.size or 1024 * 100))  # Ler no máximo 100KB
             sample = sample_bytes.decode(encoding)
             
-            # Restaurar posição do cursor
             await file.seek(0)
             
-            # Verificar delimitadores comuns
             delimiters = [',', ';', '\t', '|']
             counts = {}
             
             for delimiter in delimiters:
-                # Contar número de colunas consistentes
                 try:
-                    lines = sample.split('\n')[:10]  # Analisar até 10 primeiras linhas
+                    lines = sample.split('\n')[:10]
                     if not lines:
                         continue
                         
@@ -92,7 +55,6 @@ class ValidationService:
                     if not rows:
                         continue
                         
-                    # Contar colunas na primeira linha não vazia
                     first_row_cols = 0
                     for row in rows:
                         if row:
@@ -100,15 +62,13 @@ class ValidationService:
                             break
                     
                     if first_row_cols <= 1:
-                        continue  # Provavelmente não é o delimitador correto
+                        continue
                     
-                    # Verificar consistência no número de colunas
                     consistent_rows = 0
                     for row in rows:
                         if len(row) == first_row_cols:
                             consistent_rows += 1
                     
-                    # Calcular consistência como porcentagem
                     if rows:
                         consistency = consistent_rows / len(rows)
                         counts[delimiter] = {
@@ -118,12 +78,10 @@ class ValidationService:
                 except Exception as e:
                     logger.warning(f"Erro ao testar delimitador '{delimiter}': {str(e)}")
             
-            # Escolher o melhor delimitador com base na consistência e número de colunas
             best_delimiter = None
             best_score = 0
             
             for delimiter, stats in counts.items():
-                # Pontuação baseada em consistência e número de colunas
                 score = stats['consistency'] * stats['columns']
                 if score > best_score:
                     best_score = score
@@ -138,7 +96,6 @@ class ValidationService:
                 
         except Exception as e:
             logger.error(f"Erro ao detectar delimitador: {str(e)}")
-            # Tentar restaurar posição do cursor em caso de erro
             try:
                 await file.seek(0)
             except:
@@ -146,18 +103,6 @@ class ValidationService:
             return None
     
     async def validate_file_structure(self, file: UploadFile, file_extension: str, encoding: str = 'utf-8', delimiter: str = ',') -> Dict[str, Any]:
-        """
-        Valida a estrutura de um arquivo de dados
-        
-        Args:
-            file: Arquivo a ser validado
-            file_extension: Extensão do arquivo
-            encoding: Encoding do arquivo
-            delimiter: Delimitador (para CSV)
-            
-        Returns:
-            Dicionário com resultados da validação
-        """
         result = {
             "is_valid": False,
             "errors": [],
@@ -167,16 +112,10 @@ class ValidationService:
         }
         
         try:
-            # Salvar posição atual do cursor do arquivo
-            current_position = file.file.tell()
-            
-            # Ler um trecho do arquivo para validação
             sample_bytes = await file.read(min(1024 * 100, file.size or 1024 * 100))  # Ler no máximo 100KB
             
-            # Restaurar posição do cursor
             await file.seek(0)
             
-            # Validar conforme o tipo de arquivo
             if file_extension == 'csv':
                 try:
                     sample = sample_bytes.decode(encoding)
@@ -187,7 +126,6 @@ class ValidationService:
                     result["column_count"] = len(df.columns)
                     result["row_sample_count"] = len(df)
                     
-                    # Verificar cabeçalhos duplicados
                     duplicated_headers = df.columns[df.columns.duplicated()].tolist()
                     if duplicated_headers:
                         result["warnings"].append(f"O arquivo contém cabeçalhos duplicados: {', '.join(duplicated_headers)}")
@@ -204,7 +142,6 @@ class ValidationService:
                     result["column_count"] = len(df.columns)
                     result["row_sample_count"] = len(df)
                     
-                    # Verificar cabeçalhos duplicados
                     duplicated_headers = df.columns[df.columns.duplicated()].tolist()
                     if duplicated_headers:
                         result["warnings"].append(f"O arquivo contém cabeçalhos duplicados: {', '.join(duplicated_headers)}")
@@ -229,7 +166,6 @@ class ValidationService:
             
         except Exception as e:
             result["errors"].append(f"Erro ao validar arquivo: {str(e)}")
-            # Tentar restaurar posição do cursor em caso de erro
             try:
                 await file.seek(0)
             except:
