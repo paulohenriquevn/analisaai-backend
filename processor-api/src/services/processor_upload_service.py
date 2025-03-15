@@ -515,9 +515,6 @@ class ProcessorUploadService:
                     plt.savefig(os.path.join(report_folder, "correlation_matrix.png"))
                     plt.close(correlation_plots)
             
-            # 6. Obter resumo conciso
-            summary = reporter.get_report_summary()
-            
             # Extrair transformações aplicadas pelo pipeline
             transformations_list = self._extract_transformations(pipeline)
             
