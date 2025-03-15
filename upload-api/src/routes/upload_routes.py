@@ -129,7 +129,6 @@ async def delete_file(
     except Exception as e:
         logger.error(f"Erro ao remover arquivo {file_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao remover arquivo: {str(e)}")
-    
 
 @router.post("/files/{file_id}/confirm", response_model=FileMetadata)
 async def confirm_file_upload(

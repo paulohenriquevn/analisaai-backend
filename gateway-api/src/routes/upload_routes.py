@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request, status
+import io
 import httpx
 import logging
+from pydantic import BaseModel
 from typing import Optional, Dict, Any
-import io
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request, status
+
 
 from config import settings
 
@@ -11,6 +13,10 @@ logger = logging.getLogger("upload-routes")
 
 
 router = APIRouter()
+
+class DatasetConfirmation(BaseModel):
+    dataset_name: str
+    description: Optional[str] = None
 
 async def forward_request(url: str, method: str, headers: Dict[str, str] = None, 
                           params: Dict[str, Any] = None, data: Dict[str, Any] = None, 
@@ -54,7 +60,7 @@ async def forward_request(url: str, method: str, headers: Dict[str, str] = None,
 
 
 @router.post("/", tags=["Upload"])
-async def upload_file(
+async def post_upload_file(
     request: Request,
     file: UploadFile = File(...),
     delimiter: Optional[str] = Form(","),
@@ -102,13 +108,11 @@ async def upload_file(
 @router.get("/files/{file_id}/preview", tags=["Upload"])
 async def get_file_preview(
     request: Request,
-    file_id: str
+    file_id: str,
 ):
-
     target_url = f"{settings.UPLOAD_API_URL}/api/v1/files/{file_id}/preview"
     
     try:
-
         headers = {
             "Accept": request.headers.get("Accept", "application/json"),
             "Accept-Language": request.headers.get("Accept-Language", "pt-BR"),
@@ -121,77 +125,34 @@ async def get_file_preview(
         response = await forward_request(
             url=target_url,
             method="GET",
-            headers=headers
-        )
-
-        return response["content"]
-    except Exception as e:
-        logger.error(f"Erro ao obter prévia do arquivo: {str(e)}")
-        raise
-    
-
-@router.post("/files/{file_id}/confirm", tags=["Upload"])
-async def post_file_confirm(
-    request: Request,
-    file_id: str
-):
-    target_url = f"{settings.UPLOAD_API_URL}/api/v1/files/{file_id}/confirm"
-    
-    try:
-        headers = {
-            "Accept": request.headers.get("Accept", "application/json"),
-            "Accept-Language": request.headers.get("Accept-Language", "pt-BR"),
-            "User-Agent": request.headers.get("User-Agent", "AnalisaAI-Gateway")
-        }
-        
-        if "Authorization" in request.headers:
-            headers["Authorization"] = request.headers["Authorization"]
-        
-        response = await forward_request(
-            url=target_url,
-            method="POST",
-            headers=headers
+            headers=headers,
         )
         
         return response["content"]
     except Exception as e:
-        logger.error(f"Erro ao confirma o upload do arquivo: {str(e)}")
+        logger.error(f"Erro ao preview: {str(e)}")
         raise
 
 
 @router.get("/files", tags=["Upload"])
-async def list_files(
+async def get_list_files(
     request: Request,
     limit: int = 10,
     offset: int = 0
 ):
-    """
-    Lista arquivos carregados pelo usuário
-    
-    Args:
-        limit: Número máximo de arquivos a retornar
-        offset: Deslocamento para paginação
-        
-    Returns:
-        Lista de metadados de arquivos
-    """
-    # URL do serviço de upload
+
     target_url = f"{settings.UPLOAD_API_URL}/api/v1/files"
     
-    # Encaminhar requisição para o serviço de upload
     try:
-        # Coletar cabeçalhos relevantes
         headers = {
             "Accept": request.headers.get("Accept", "application/json"),
             "Accept-Language": request.headers.get("Accept-Language", "pt-BR"),
             "User-Agent": request.headers.get("User-Agent", "AnalisaAI-Gateway")
         }
         
-        # Se houver token de autenticação, encaminhar
         if "Authorization" in request.headers:
             headers["Authorization"] = request.headers["Authorization"]
         
-        # Encaminhar requisição
         response = await forward_request(
             url=target_url,
             method="GET",
@@ -199,7 +160,6 @@ async def list_files(
             params={"limit": limit, "offset": offset}
         )
         
-        # Retornar resposta com o status code original
         return response["content"]
     except Exception as e:
         logger.error(f"Erro ao listar arquivos: {str(e)}")
@@ -211,16 +171,6 @@ async def delete_file(
     request: Request,
     file_id: str
 ):
-    """
-    Remove um arquivo e seus dados processados
-    
-    Args:
-        file_id: ID único do arquivo
-        
-    Returns:
-        Confirmação de remoção
-    """
-    # URL do serviço de upload
     target_url = f"{settings.UPLOAD_API_URL}/api/v1/files/{file_id}"
     
     # Encaminhar requisição para o serviço de upload
@@ -247,4 +197,35 @@ async def delete_file(
         return response["content"]
     except Exception as e:
         logger.error(f"Erro ao remover arquivo: {str(e)}")
+        raise
+
+
+@router.post("/files/{file_id}/confirm", tags=["Upload"])
+async def post_confirm_file_upload(
+    request: Request,
+    file_id: str,
+    confirmation: DatasetConfirmation,
+):
+    target_url = f"{settings.UPLOAD_API_URL}/api/v1/files/{file_id}/confirm"
+    
+    try:
+        headers = {
+            "Accept": request.headers.get("Accept", "application/json"),
+            "Accept-Language": request.headers.get("Accept-Language", "pt-BR"),
+            "User-Agent": request.headers.get("User-Agent", "AnalisaAI-Gateway")
+        }
+        
+        if "Authorization" in request.headers:
+            headers["Authorization"] = request.headers["Authorization"]
+        
+        response = await forward_request(
+            url=target_url,
+            method="POST",
+            headers=headers,
+            json=confirmation.dict()
+        )
+        
+        return response["content"]
+    except Exception as e:
+        logger.error(f"Erro ao confirma o upload do arquivo: {str(e)}")
         raise
