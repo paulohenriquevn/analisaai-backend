@@ -8,6 +8,8 @@ from models.processing_models import (
     EncodingConfig, FeatureSelectionConfig
 )
 from services.processor_service import ProcessorService
+from services.processor_upload_service import ProcessorUploadService
+
 
 logger = logging.getLogger("processor-routes")
 
@@ -16,12 +18,15 @@ router = APIRouter(tags=["Processamento"])
 def get_processor_service():
     return ProcessorService()
 
+def get_processor_upload_service():
+    return ProcessorUploadService()
+
 
 @router.post("/process", response_model=ProcessingResponse)
 async def process_dataset(
     config: ProcessingConfig,
     background_tasks: BackgroundTasks,
-    processor_service: ProcessorService = Depends(get_processor_service)
+    processor_upload_service: ProcessorUploadService = Depends(get_processor_upload_service)
 ):
     try:
         if not config.dataset_id:
@@ -30,7 +35,7 @@ async def process_dataset(
                 detail="O campo dataset_id é obrigatório"
             )
             
-        processing_id = await processor_service.process_dataset(config)
+        processing_id = await processor_upload_service.process_dataset(config)
         
         response = {
             "id": processing_id,
@@ -116,147 +121,4 @@ async def get_processing_result(
         raise HTTPException(
             status_code=500, 
             detail=f"Erro ao obter resultados de processamento: {str(e)}"
-        )
-
-
-@router.get("/process/{processing_id}/full", response_model=ProcessingResult)
-async def get_full_processing_result(
-    processing_id: str,
-    processor_service: ProcessorService = Depends(get_processor_service)
-):
-    try:
-        result = await processor_service.get_processing_results(processing_id)
-        
-        if not result:
-            raise HTTPException(status_code=404, detail="Processamento não encontrado")
-        
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erro ao obter resultados completos de processamento: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao obter resultados completos de processamento: {str(e)}"
-        )
-
-
-@router.get("/process/dataset/{dataset_id}", response_model=ProcessingResponse)
-async def get_dataset_processing(
-    dataset_id: str,
-    processor_service: ProcessorService = Depends(get_processor_service)
-):
-    try:
-        # No futuro, implementar a busca pelo processamento mais recente de um dataset
-        raise HTTPException(
-            status_code=501, 
-            detail="Funcionalidade ainda não implementada"
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erro ao obter processamento do dataset: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao obter processamento do dataset: {str(e)}"
-        )
-
-
-@router.get("/process/{processing_id}/missing-values", response_model=List[Dict[str, Any]])
-async def get_missing_values_report(
-    processing_id: str,
-    processor_service: ProcessorService = Depends(get_processor_service)
-):
-    try:
-        result = await processor_service.get_processing_results(processing_id)
-        
-        if not result:
-            raise HTTPException(status_code=404, detail="Processamento não encontrado")
-        
-        if not result.missing_values_report:
-            return []
-        
-        return [report.dict() for report in result.missing_values_report]
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erro ao obter relatório de valores ausentes: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao obter relatório de valores ausentes: {str(e)}"
-        )
-
-
-@router.get("/process/{processing_id}/outliers", response_model=List[Dict[str, Any]])
-async def get_outliers_report(
-    processing_id: str,
-    processor_service: ProcessorService = Depends(get_processor_service)
-):
-    try:
-        result = await processor_service.get_processing_results(processing_id)
-        
-        if not result:
-            raise HTTPException(status_code=404, detail="Processamento não encontrado")
-        
-        if not result.outliers_report:
-            return []
-        
-        return [report.dict() for report in result.outliers_report]
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erro ao obter relatório de outliers: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao obter relatório de outliers: {str(e)}"
-        )
-
-
-@router.get("/process/{processing_id}/feature-importance", response_model=List[Dict[str, Any]])
-async def get_feature_importance(
-    processing_id: str,
-    processor_service: ProcessorService = Depends(get_processor_service)
-):
-    try:
-        result = await processor_service.get_processing_results(processing_id)
-        
-        if not result:
-            raise HTTPException(status_code=404, detail="Processamento não encontrado")
-        
-        if not result.feature_importance:
-            return []
-        
-        return [feature.dict() for feature in result.feature_importance]
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erro ao obter importância das features: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao obter importância das features: {str(e)}"
-        )
-
-
-@router.get("/process/{processing_id}/transformations", response_model=List[Dict[str, Any]])
-async def get_transformations(
-    processing_id: str,
-    processor_service: ProcessorService = Depends(get_processor_service)
-):
-    try:
-        result = await processor_service.get_processing_results(processing_id)
-        
-        if not result:
-            raise HTTPException(status_code=404, detail="Processamento não encontrado")
-        
-        if not result.transformations_applied:
-            return []
-        
-        return [transform.dict() for transform in result.transformations_applied]
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erro ao obter transformações: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Erro ao obter transformações: {str(e)}"
         )

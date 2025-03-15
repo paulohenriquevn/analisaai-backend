@@ -103,10 +103,7 @@ async def get_processing_results(processing_id: str):
             record = result.fetchone()
             
             if record:
-                if hasattr(record, '_mapping'):
-                    return dict(record._mapping)
-                column_names = data_processed.columns.keys()
-                return {col: record[i] for i, col in enumerate(column_names)}
+                return {c.name: getattr(record, c.name) for c in data_processed.columns}
             else:
                 return None
         except SQLAlchemyError as e:
