@@ -32,6 +32,7 @@ class FeatureSelectionConfig(BaseModel):
     method: str = "auto"  # 'auto', 'correlation', 'feature_importance', 'recursive'
     max_features: Optional[int] = None  # Número máximo de features a manter
     min_importance: Optional[float] = 0.01  # Importância mínima para manter a feature
+    auto_explore: Optional[bool] = False  # Nova flag para ativar o modo de exploração automática
 
 class ProcessingConfig(BaseModel):
     """Configuração completa para processamento de dados"""
@@ -43,6 +44,7 @@ class ProcessingConfig(BaseModel):
     feature_selection: Optional[FeatureSelectionConfig] = FeatureSelectionConfig()
     target_column: Optional[str] = None
     columns_to_ignore: Optional[List[str]] = []
+    use_auto_explore: Optional[bool] = False
 
 class MissingValuesReport(BaseModel):
     """Relatório de valores ausentes por coluna"""
@@ -80,13 +82,14 @@ class ProcessingResult(BaseModel):
     dataset_id: str
     status: str  # 'processing', 'completed', 'error'
     error_message: Optional[str] = None
-    missing_values_report: Optional[List[MissingValuesReport]] = []
-    outliers_report: Optional[List[OutlierReport]] = []
-    feature_importance: Optional[List[FeatureImportance]] = []
-    transformations_applied: Optional[List[TransformationApplied]] = []
+    missing_values_report: Optional[List[Dict[str, Any]]] = []
+    outliers_report: Optional[List[Dict[str, Any]]] = []
+    feature_importance: Optional[List[Dict[str, Any]]] = []
+    transformations_applied: Optional[List[Dict[str, Any]]] = []
     preprocessing_config: Optional[Dict[str, Any]] = {}
     feature_engineering_config: Optional[Dict[str, Any]] = {}
     validation_results: Optional[Dict[str, Any]] = {}
+    transformation_statistics: Optional[Dict[str, Any]] = {}  # Novo campo para estatísticas do Explorer
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     
@@ -114,6 +117,7 @@ class ProcessingResponse(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.now)
     summary: Optional[str] = None
     validation_metrics: Optional[ValidationMetrics] = None
+    auto_explore_used: Optional[bool] = False  # Novo campo indicando se o Explorer foi usado
     
     class Config:
         validate_assignment = True

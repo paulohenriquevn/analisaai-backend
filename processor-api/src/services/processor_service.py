@@ -58,3 +58,74 @@ class ProcessorService:
         except Exception as e:
             logger.warning(f"Erro ao formatar métricas de validação: {str(e)}")
             return None
+    
+    def get_explorer_statistics(self, transformation_stats: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Formata as estatísticas do Explorer para exibição na API
+        
+        Args:
+            transformation_stats: Estatísticas de transformação do Explorer
+            
+        Returns:
+            Dicionário formatado com estatísticas do Explorer
+        """
+        if not transformation_stats:
+            return {}
+            
+        try:
+            # Extrair as estatísticas mais relevantes
+            stats = {
+                "total_transformations_tested": transformation_stats.get('total_transformations_tested', 0),
+                "best_transformation": transformation_stats.get('best_transformation', 'N/A'),
+                "feature_reduction": transformation_stats.get('feature_change_pct', 0),
+                "original_features": transformation_stats.get('original_feature_count', 0),
+                "transformed_features": transformation_stats.get('transformed_feature_count', 0),
+            }
+            
+            # Adicionar informações sobre transformações mais comuns
+            most_common = transformation_stats.get('most_common_transformations', [])
+            if most_common:
+                stats['most_common_transformations'] = most_common
+                
+            # Adicionar informações sobre desempenho do modelo
+            if 'time_spent' in transformation_stats:
+                stats['processing_time'] = transformation_stats['time_spent']
+                
+            return stats
+        except Exception as e:
+            logger.warning(f"Erro ao formatar estatísticas do Explorer: {str(e)}")
+            return {}
+            
+    async def visualize_transformations(self, processing_id: str) -> Optional[str]:
+        """
+        Gera (ou recupera) visualizações para as transformações aplicadas
+        
+        Args:
+            processing_id: ID do processamento
+            
+        Returns:
+            Caminho para o arquivo de visualização ou None
+        """
+        try:
+            report_folder = os.path.join(settings.PROCESSED_FOLDER, processing_id)
+            visualizations = {
+                "transformation_tree": os.path.join(report_folder, "transformation_tree.png"),
+                "transformations": os.path.join(report_folder, "transformations.png"),
+                "missing_values": os.path.join(report_folder, "missing_values.png"),
+                "outliers": os.path.join(report_folder, "outliers.png"),
+                "feature_importance": os.path.join(report_folder, "feature_importance.png"),
+                "feature_distributions": os.path.join(report_folder, "feature_distributions.png"),
+                "correlation_matrix": os.path.join(report_folder, "correlation_matrix.png"),
+                "target_correlations": os.path.join(report_folder, "target_correlations.png")
+            }
+            
+            # Verificar quais visualizações existem
+            existing_visualizations = {}
+            for name, path in visualizations.items():
+                if os.path.exists(path):
+                    existing_visualizations[name] = path
+                    
+            return existing_visualizations
+        except Exception as e:
+            logger.error(f"Erro ao recuperar visualizações: {str(e)}")
+            return None

@@ -34,6 +34,16 @@ async def process_dataset(
                 status_code=400, 
                 detail="O campo dataset_id é obrigatório"
             )
+        
+        # Verificar se o modo de exploração automática deve ser ativado
+        auto_explore = config.use_auto_explore or (
+            config.feature_selection and 
+            config.feature_selection.method == "auto" and 
+            config.feature_selection.auto_explore
+        )
+        
+        if auto_explore:
+            logger.info(f"Modo de exploração automática ativado para o dataset {config.dataset_id}")
             
         processing_id = await processor_upload_service.process_dataset(config)
         
@@ -41,7 +51,10 @@ async def process_dataset(
             "id": processing_id,
             "dataset_id": config.dataset_id,
             "status": "processing",
-            "summary": "Processamento iniciado. Use o endpoint /process/{processing_id} para verificar o status."
+            "auto_explore_used": auto_explore,
+            "summary": "Processamento iniciado." + 
+                      (" Exploração automática de features ativada." if auto_explore else "") + 
+                      " Use o endpoint /process/{processing_id} para verificar o status."
         }
         
         # Converter para o modelo
@@ -62,6 +75,9 @@ async def get_processing_result(
         if not result:
             raise HTTPException(status_code=404, detail="Processamento não encontrado")
         
+        # Verificar se o Explorer foi usado
+        auto_explore_used = bool(result.transformation_statistics)
+        
         # Formatar métricas de validação
         validation_metrics = processor_service.format_validation_metrics(result.validation_results)
         
@@ -78,6 +94,17 @@ async def get_processing_result(
                 f"{missing_values} colunas com valores ausentes tratados, "
                 f"{outliers} colunas com outliers tratados."
             )
+            
+            if auto_explore_used:
+                # Adicionar estatísticas da exploração automática
+                stats = result.transformation_statistics or {}
+                transformations_tested = stats.get('total_transformations_tested', 0)
+                best_transformation = stats.get('best_transformation', 'N/A')
+                
+                summary += (
+                    f" Exploração automática testou {transformations_tested} configurações" +
+                    f" para encontrar a melhor transformação {best_transformation}."
+                )
             
             if validation_metrics:
                 best = validation_metrics.best_choice
@@ -100,6 +127,7 @@ async def get_processing_result(
             "dataset_id": result.dataset_id,
             "status": result.status,
             "summary": summary,
+            "auto_explore_used": auto_explore_used
         }
         
         # Adicionar campos de data/hora se existirem
@@ -122,3 +150,49 @@ async def get_processing_result(
             status_code=500, 
             detail=f"Erro ao obter resultados de processamento: {str(e)}"
         )
+
+@router.post("/process/auto", response_model=ProcessingResponse)
+async def process_dataset_auto(
+    config: ProcessingConfig,
+    background_tasks: BackgroundTasks,
+    processor_upload_service: ProcessorUploadService = Depends(get_processor_upload_service)
+):
+    """
+    Endpoint para processamento com exploração automática de features ativada.
+    Simplifica a criação de requisições que usam o Explorer sem precisar configurar
+    manualmente os parâmetros.
+    """
+    try:
+        if not config.dataset_id:
+            raise HTTPException(
+                status_code=400, 
+                detail="O campo dataset_id é obrigatório"
+            )
+        
+        # Forçar o modo de exploração automática
+        config.use_auto_explore = True
+        
+        if not config.feature_selection:
+            config.feature_selection = FeatureSelectionConfig(
+                method="auto",
+                auto_explore=True
+            )
+        else:
+            config.feature_selection.method = "auto"
+            config.feature_selection.auto_explore = True
+            
+        processing_id = await processor_upload_service.process_dataset(config)
+        
+        response = {
+            "id": processing_id,
+            "dataset_id": config.dataset_id,
+            "status": "processing",
+            "auto_explore_used": True,
+            "summary": "Processamento com exploração automática iniciado. Use o endpoint /process/{processing_id} para verificar o status."
+        }
+        
+        # Converter para o modelo
+        return ProcessingResponse(**response)
+    except Exception as e:
+        logger.error(f"Erro ao iniciar processamento automático: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao iniciar processamento automático: {str(e)}")
