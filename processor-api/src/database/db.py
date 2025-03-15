@@ -124,3 +124,22 @@ async def get_dataset_processing_results(dataset_id: str):
         except SQLAlchemyError as e:
             logger.error(f"Erro ao buscar resultados de processamento para dataset: {str(e)}")
             raise
+        
+async def update_processing_results(processing_id: str, update_data: dict):
+    async with async_session() as session:
+        try:
+            # Adicionar campo de updated_at automaticamente
+            update_data["updated_at"] = datetime.now()
+                
+            query = data_processed.update().where(
+                data_processed.c.id == processing_id
+            ).values(**update_data)
+            
+            await session.execute(query)
+            await session.commit()
+            logger.info(f"Registro de processamento atualizado: {processing_id}")
+            return True
+        except SQLAlchemyError as e:
+            await session.rollback()
+            logger.error(f"Erro ao atualizar registro de processamento: {str(e)}")
+            raise
