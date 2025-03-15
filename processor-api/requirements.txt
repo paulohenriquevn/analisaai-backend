@@ -1,0 +1,48 @@
+# FastAPI e dependências
+fastapi>=0.95.0
+uvicorn>=0.22.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+pydantic-settings>=2.0.0  # Para BaseSettings
+email-validator>=2.0.0
+
+# Manipulação assíncrona de arquivos
+aiofiles>=23.1.0
+
+# Processamento de dados
+pandas>=2.0.0
+numpy>=1.24.3
+xlrd>=2.0.1  # Para arquivos Excel antigos (.xls)
+openpyxl>=3.1.2  # Para arquivos Excel modernos (.xlsx)
+pyarrow>=12.0.0  # Para melhor desempenho com pandas
+
+# Detecção de encoding e parsing
+chardet>=5.1.0
+python-magic>=0.4.27  # Para detecção de MIME type
+
+# Ferramentas para processamento assíncrono
+celery>=5.2.7
+redis>=4.5.4  # Como backend para Celery
+
+# Cliente HTTP para comunicação entre serviços
+httpx>=0.24.0
+
+# Banco de dados
+sqlalchemy>=2.0.0
+asyncpg>=0.27.0  # Driver PostgreSQL assíncrono
+alembic>=1.10.0  # Migrações de banco de dados
+
+# Logging e monitoramento
+structlog>=23.1.0
+
+# Segurança
+python-jose>=3.3.0  # Para JWT
+passlib>=1.7.4  # Para hash de senhas
+bcrypt>=4.0.1  # Para hash de senhas
+
+# Ferramentas de desenvolvimento
+pytest>=7.3.1
+pytest-asyncio>=0.21.0
+black>=23.3.0
+isort>=5.12.0
+flake8>=6.0.0

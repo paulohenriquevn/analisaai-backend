@@ -154,4 +154,73 @@ analisaja/
 - Garantir criptografia em trânsito e em repouso para todos os dados
 - Documentar o tratamento de dados pessoais na plataforma
 
-Estas histórias são um ponto de partida para o desenvolvimento backend do Analisa.ai, focando nas necessidades principais do MVP conforme delineado nos documentos fornecidos. Cada história pode ser refinada com o time técnico para determinar estimativas de esforço e priorização dentro do roadmap de 3 meses para o MVP.
+Aqui estão as histórias de usuário ajustadas para garantir o uso da biblioteca **cafe-autofe** no pré-processamento e engenharia de features:
+
+---
+
+## Épico: Pré-processamento e Engenharia de Features  
+
+### História 6: Tratamento Automático de Valores Ausentes  
+**Como** usuário sem conhecimento técnico avançado,  
+**Quero** que o sistema trate automaticamente valores ausentes usando a biblioteca **cafe-autofe**,  
+**Para que** eu não precise me preocupar com preenchimento manual ou perda de dados importantes.  
+
+**Critérios de Aceitação:**  
+- Utilizar **cafe-autofe** para detectar e tratar valores ausentes.  
+- Aplicar imputação automática baseada na distribuição dos dados.  
+- Exibir relatório com percentual de valores ausentes por coluna e ação tomada.  
+- Permitir configuração personalizada de imputação para variáveis categóricas e numéricas.  
+
+---
+
+### História 7: Detecção e Tratamento de Outliers  
+**Como** usuário com conhecimento básico em análise de dados,  
+**Quero** que o sistema detecte e trate outliers automaticamente utilizando **cafe-autofe**,  
+**Para que** eu possa melhorar a qualidade dos dados sem precisar entender estatísticas avançadas.  
+
+**Critérios de Aceitação:**  
+- Utilizar **cafe-autofe** para detectar outliers com diferentes métodos.  
+- Exibir relatório de colunas afetadas e número de outliers detectados.  
+- Oferecer estratégias de tratamento (remoção, substituição, normalização).  
+- Garantir que a remoção ou substituição não impacte significativamente a distribuição dos dados.  
+
+---
+
+### História 8: Normalização e Padronização de Dados  
+**Como** cientista de dados iniciante,  
+**Quero** que o sistema normalize e padronize os dados automaticamente com **cafe-autofe**,  
+**Para que** eu possa preparar os dados de forma adequada para os modelos de machine learning.  
+
+**Critérios de Aceitação:**  
+- Utilizar **cafe-autofe** para aplicar Min-Max Scaling, Z-score e Robust Scaling.  
+- Permitir que o usuário escolha o método ou aplicar automaticamente.  
+- Exibir comparação gráfica entre dados originais e transformados.  
+- Garantir que apenas colunas numéricas sejam afetadas pela transformação.  
+
+---
+
+### História 9: Codificação de Variáveis Categóricas  
+**Como** usuário sem experiência em engenharia de features,  
+**Quero** que o sistema converta variáveis categóricas automaticamente usando **cafe-autofe**,  
+**Para que** eu possa usar modelos de machine learning sem precisar lidar com codificação manual.  
+
+**Critérios de Aceitação:**  
+- Utilizar **cafe-autofe** para identificar colunas categóricas.  
+- Aplicar one-hot encoding para baixa cardinalidade e target encoding para alta cardinalidade.  
+- Exibir relatório das transformações realizadas.  
+- Garantir que a transformação mantenha a interpretabilidade dos dados.  
+
+---
+
+### História 10: Seleção Automática de Features  
+**Como** usuário buscando otimizar o desempenho do modelo,  
+**Quero** que o sistema selecione automaticamente as features mais relevantes utilizando **cafe-autofe**,  
+**Para que** eu possa evitar o uso de variáveis irrelevantes ou redundantes.  
+
+**Critérios de Aceitação:**  
+- Utilizar **cafe-autofe** para análise da importância das features.  
+- Exibir relatório com as features mais relevantes e justificativa da seleção.  
+- Permitir ajuste do usuário para remover ou manter determinadas features.  
+- Garantir que a seleção seja consistente para diferentes tipos de problemas (classificação, regressão, clustering).  
+
+---
