@@ -28,6 +28,7 @@ def upgrade() -> None:
         sa.Column('outliers_report', JSON, nullable=True),
         sa.Column('feature_importance', JSON, nullable=True),
         sa.Column('transformations_applied', JSON, nullable=True),
+        sa.Column('best_choice', sa.String(), nullable=False),
         sa.Column('status', sa.String(), nullable=False),
         sa.Column('error_message', sa.String(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=True),

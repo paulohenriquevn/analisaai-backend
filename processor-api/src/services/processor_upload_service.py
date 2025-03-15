@@ -176,10 +176,16 @@ class ProcessorUploadService:
                 if results:
                     processing_results.update(results)
                     
+                    best_choice = "original"
+                    validation_results = processing_results.get("validation_results")
+                    if validation_results:
+                        best_choice = validation_results.get('best_choice')
+                    
                     await update_processing_results(
                         processing_id,
                         {
                             "status": "completed",
+                            "best_choice": best_choice,
                             "preprocessing_config": processing_results.get("preprocessing_config"),
                             "feature_engineering_config": processing_results.get("feature_engineering_config"),
                             "validation_results": processing_results.get("validation_results"),

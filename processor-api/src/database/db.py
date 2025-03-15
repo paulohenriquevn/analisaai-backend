@@ -31,6 +31,7 @@ data_processed = Table(
     Column("outliers_report", JSON, nullable=True),
     Column("feature_importance", JSON, nullable=True),
     Column("transformations_applied", JSON, nullable=True),
+    Column("best_choice", String, nullable=False, default="original"),  # 'processing', 'completed', 'error'
     Column("status", String, nullable=False),  # 'processing', 'completed', 'error'
     Column("error_message", String, nullable=True),
     Column("created_at", DateTime, default=datetime.now),
