@@ -3,6 +3,7 @@ import logging
 import pandas as pd
 import uuid
 import asyncio
+import matplotlib.pyplot as plt
 
 from typing import Dict, Optional, Any
 from datetime import datetime
@@ -14,7 +15,9 @@ from models.processing_models import (
 from database.db import save_processing_results, update_processing_results, update_processing_status
 
 from cafe import (
-    create_data_pipeline
+    create_data_pipeline,
+    ReportDataPipeline,
+    ReportVisualizer
 )
 
 logger = logging.getLogger("processor-service")
@@ -170,7 +173,8 @@ class ProcessorUploadService:
                     None, 
                     self._process_data_sync, 
                     df, 
-                    config
+                    config,
+                    processing_id
                 )
                 
                 if results:
@@ -214,7 +218,7 @@ class ProcessorUploadService:
                 error_message=f"Erro durante processamento: {str(e)}"
             )
 
-    def _process_data_sync(self, df, config):
+    def _process_data_sync(self, df, config, processing_id):
         try:
             # Configurar CAFE
             preprocessor_config = self._build_preprocessor_config(config)
@@ -233,11 +237,122 @@ class ProcessorUploadService:
             target_col = config.target_column if config.target_column else None
             transformed_df = pipeline.fit_transform(df, target_col=target_col)
             
-            # Extrair resultados
+            # Criar a pasta para armazenar as visualizações
+            report_folder = os.path.join(settings.PROCESSED_FOLDER, processing_id)
+            os.makedirs(report_folder, exist_ok=True)
+            
+            # Salvar o dataset transformado
+            transformed_file_path = os.path.join(report_folder, f"{config.dataset_id}_transformed.csv")
+            transformed_df.to_csv(transformed_file_path, index=False)
+            
+            # Criar ReportDataPipeline para gerar relatórios
+            reporter = ReportDataPipeline(
+                df=df,  # Dataset original
+                target_col=target_col,
+                preprocessor=pipeline.preprocessor,
+                feature_engineer=pipeline.feature_engineer,
+                validator=pipeline.validator
+            )
+            
+            # Criar ReportVisualizer para gerar visualizações
+            visualizer = ReportVisualizer()
+            
+            # 1. Obter relatório de valores ausentes
+            missing_values_report = reporter.get_missing_values()
+            missing_values_list = []
+            if not missing_values_report.empty:
+                missing_values_list = missing_values_report.to_dict('records')
+                
+                # Gerar visualização de valores ausentes
+                fig_missing = visualizer.visualize_missing_values(missing_values_report)
+                if fig_missing:
+                    plt.figure(fig_missing.number)
+                    plt.savefig(os.path.join(report_folder, "missing_values.png"))
+                    plt.close(fig_missing)
+            
+            # 2. Obter relatório de outliers
+            outliers_report = reporter.get_outliers()
+            outliers_list = []
+            if not outliers_report.empty:
+                outliers_list = outliers_report.to_dict('records')
+                
+                # Gerar visualização de outliers
+                fig_outliers = visualizer.visualize_outliers(outliers_report, df)
+                if fig_outliers:
+                    plt.figure(fig_outliers.number)
+                    plt.savefig(os.path.join(report_folder, "outliers.png"))
+                    plt.close(fig_outliers)
+            
+            # 3. Obter relatório de importância de features
+            importance_report = reporter.get_feature_importance()
+            feature_importance_list = []
+            if not importance_report.empty:
+                feature_importance_list = importance_report.to_dict('records')
+                
+                # Gerar visualização de importância de features
+                fig_importance = visualizer.visualize_feature_importance(importance_report)
+                if fig_importance:
+                    plt.figure(fig_importance.number)
+                    plt.savefig(os.path.join(report_folder, "feature_importance.png"))
+                    plt.close(fig_importance)
+            
+            # 4. Obter relatório de transformações
+            transformations_report = reporter.get_transformations()
+            transformations_list = []
+            
+            # Mostrar estatísticas de transformações
+            stats = transformations_report.get('estatisticas', {})
+            if stats and stats.get('dimensoes_originais') is not None:
+                # Gerar visualização das transformações
+                validation_results = transformations_report.get('validacao', {})
+                fig_transformations = visualizer.visualize_transformations(validation_results, stats)
+                if fig_transformations:
+                    plt.figure(fig_transformations.number)
+                    plt.savefig(os.path.join(report_folder, "transformations.png"))
+                    plt.close(fig_transformations)
+            
+            # 5. Gerar visualizações adicionais
+            
+            # 5.1 Visualização de distribuição de dados
+            top_features = importance_report.head(6)['feature'].tolist() if not importance_report.empty else None
+            fig_distribution = visualizer.visualize_data_distribution(df, columns=top_features)
+            if fig_distribution:
+                plt.figure(fig_distribution.number)
+                plt.savefig(os.path.join(report_folder, "feature_distributions.png"))
+                plt.close(fig_distribution)
+            
+            # 5.2 Visualização de matriz de correlação
+            correlation_plots = visualizer.visualize_correlation_matrix(df, target_col=target_col)
+            if correlation_plots:
+                if isinstance(correlation_plots, tuple):
+                    fig_corr, fig_target_corr = correlation_plots
+                    plt.figure(fig_corr.number)
+                    plt.savefig(os.path.join(report_folder, "correlation_matrix.png"))
+                    plt.close(fig_corr)
+                    
+                    plt.figure(fig_target_corr.number)
+                    plt.savefig(os.path.join(report_folder, "target_correlations.png"))
+                    plt.close(fig_target_corr)
+                else:
+                    plt.figure(correlation_plots.number)
+                    plt.savefig(os.path.join(report_folder, "correlation_matrix.png"))
+                    plt.close(correlation_plots)
+            
+            # 6. Obter resumo conciso
+            summary = reporter.get_report_summary()
+            
+            # Extrair transformações aplicadas pelo pipeline
+            transformations_list = self._extract_transformations(pipeline)
+            
+            # Preparar resultados para retorno
             results = {
                 "preprocessing_config": preprocessor_config,
                 "feature_engineering_config": feature_engineer_config,
                 "validation_results": pipeline.get_validation_results(),
+                "missing_values_report": missing_values_list,
+                "outliers_report": outliers_list,
+                "feature_importance": feature_importance_list,
+                "transformations_applied": transformations_list,
             }
             
             return results
@@ -245,6 +360,7 @@ class ProcessorUploadService:
             logger.error(f"Erro durante processamento síncrono: {str(e)}")
             raise
 
+    def _extract_transformations(self, pipeline):
         """Extrai transformações aplicadas pelo pipeline CAFE"""
         try:
             transformations = []
@@ -307,36 +423,6 @@ class ProcessorUploadService:
                             transformation['details'] = {}
                     
                     transformations.append(transformation)
-                    
-            return transformations if transformations else None
-        except Exception as e:
-            logger.warning(f"Erro ao extrair transformações aplicadas: {str(e)}")
-        return None
-        """Extrai transformações aplicadas pelo pipeline CAFE"""
-        try:
-            transformations = []
-            
-            # Transformações do preprocessor
-            preprocessor = pipeline.preprocessor
-            if hasattr(preprocessor, 'transformations_applied'):
-                for transform in preprocessor.transformations_applied:
-                    transformations.append({
-                        'column': transform.get('column', ''),
-                        'original_type': transform.get('original_type', ''),
-                        'transformation_type': transform.get('type', ''),
-                        'details': transform.get('details', {})
-                    })
-            
-            # Transformações do feature engineer
-            feature_engineer = pipeline.feature_engineer
-            if hasattr(feature_engineer, 'transformations_applied'):
-                for transform in feature_engineer.transformations_applied:
-                    transformations.append({
-                        'column': transform.get('column', ''),
-                        'original_type': transform.get('original_type', ''),
-                        'transformation_type': transform.get('type', ''),
-                        'details': transform.get('details', {})
-                    })
                     
             return transformations if transformations else None
         except Exception as e:
