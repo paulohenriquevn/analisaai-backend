@@ -1,0 +1,54 @@
+# Requisitos básicos para o Analisa.ai
+# Versão 1.0.0
+
+# Biblioteca principal de AutoML
+flaml>=1.2.0
+
+# Bibliotecas de dados e manipulação
+pandas>=1.3.5
+numpy>=1.21.0
+
+# Bibliotecas de Machine Learning
+scikit-learn>=1.0.2
+
+# Persistência de modelos
+joblib>=1.1.0
+
+# Visualização (opcional, para módulos futuros)
+matplotlib>=3.5.1
+seaborn>=0.11.2
+plotly>=5.6.0
+
+# Processamento de dados
+category_encoders>=2.5.0
+
+# Para facilitar o desenvolvimento
+pytest>=7.0.0
+pytest-cov>=3.0.0
+
+# Interface web (para integrações futuras)
+flask>=2.0.3
+gunicorn>=20.1.0
+
+# Manipulação de arquivos
+openpyxl>=3.0.9
+xlrd>=2.0.1
+python-dotenv>=0.20.0
+
+# Integração com outras fontes de dados
+sqlalchemy>=1.4.35
+psycopg2-binary>=2.9.3
+pymongo>=4.1.1
+
+# Autofeat (para feature engineering automático)
+git+https://github.com/paulohenriquevn/autofeat.git
+
+# Logging avançado
+rich>=12.0.0
+loguru>=0.6.0
+
+# Para melhor experiência de desenvolvimento
+ipykernel>=6.13.0
+jupyter>=1.0.0
+
+flaml[automl]>=1.2.0
